@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, ARRAY, Enum as SQLEnum, JSON
 from sqlalchemy.orm import relationship
-from .database import Base
+from backend.database import Base
 from datetime import datetime
 import enum
 
@@ -92,3 +92,4 @@ class Settlement(Base):
     lng = Column(Float, nullable=False)
     road_quality = Column(SQLEnum(RoadQuality), nullable=False)
     distance_from_aktau_km = Column(Float, nullable=False)
+    
