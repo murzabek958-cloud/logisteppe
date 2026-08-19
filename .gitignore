@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.env
+*.bak
+node_modules/
+dist/
+.env.local
+.DS_Store
