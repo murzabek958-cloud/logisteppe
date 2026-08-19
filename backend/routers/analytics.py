@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
-from datetime import datetime, date
-from ..database import get_db
-from ..models import User, Order, Carrier, Route, UserRole, OrderStatus, RouteStatus
-from ..schemas import AnalyticsSummary
-from ..auth import get_current_active_user
+from datetime import datetime
+from backend.database import get_db
+from backend.models import User, Order, Carrier, Route, UserRole, OrderStatus, RouteStatus
+from backend.schemas import AnalyticsSummary
+from backend.auth import get_current_active_user
 
 router = APIRouter()
 
@@ -27,16 +27,13 @@ def get_analytics(
 
     active_carriers = db.query(Carrier).filter(Carrier.is_available == True).count()
 
-    # Бітірілген маршруттардың жалпы қашықтығы → үнемделген бос жүріс (шамамен 30%)
     completed_routes = db.query(Route).filter(Route.status == RouteStatus.completed).all()
     empty_miles_saved = round(sum(r.distance_km for r in completed_routes) * 0.30, 1)
 
-    # LTL: бір маршрутта 2+ тапсырыс бар топтар
     ltl_groups = db.query(Route).filter(
         Route.status != RouteStatus.planned
     ).count()
 
-    # Ең жиі маршруттар (origin → destination жұптары бойынша)
     top_routes_raw = (
         db.query(Order.origin, Order.destination, func.count(Order.id).label("count"))
         .group_by(Order.origin, Order.destination)
