@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ordersAPI, analyticsAPI, carriersAPI } from '../api/client';
 import OrderList from '../components/OrderList';
 
 const DispatcherDashboard = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const activeTab = new URLSearchParams(location.search).get('tab') || 'dashboard';
   const [orders, setOrders] = useState([]);
   const [carriers, setCarriers] = useState([]);
   const [analytics, setAnalytics] = useState(null);
@@ -170,8 +172,7 @@ const DispatcherDashboard = () => {
       </div>
     );
   }
-
-  if (error) {
+    if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white border-b border-gray-200 px-8 py-6">
@@ -205,6 +206,121 @@ const DispatcherDashboard = () => {
     );
   }
 
+  // Tab-specific simple views
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'carriers':
+        return (
+          <div className="card">
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Тасымалдаушылар</h2>
+              {carriers.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">Тасымалдаушы табылмады</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">ID</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Орналасқан жер</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Сыйымдылық</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Рейтинг</th>
+                        <th className="text-left py-3 px-4 text-sm font-semibold text-gray-600">Статус</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {carriers.map(carrier => (
+                        <tr key={carrier.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-3 px-4 text-sm font-medium">#{carrier.id}</td>
+                          <td className="py-3 px-4 text-sm">{carrier.current_location_name}</td>
+                          <td className="py-3 px-4 text-sm">{carrier.truck_capacity_kg} кг</td>
+                          <td className="py-3 px-4 text-sm">⭐ {carrier.rating}</td>
+                          <td className="py-3 px-4 text-sm">
+                            <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${carrier.is_available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                              {carrier.is_available ? '✅ Бос' : '🚚 Жолда'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      case 'routes':
+        return (
+          <div className="card">
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Маршруттар</h2>
+              <div className="text-center py-12 text-gray-500">
+                <div className="text-4xl mb-4">🗺️</div>
+                <div>Маршруттарды басқару үшін тапсырысты сәйкестендіріңіз</div>
+                <button
+                  onClick={() => navigate('/dispatcher?tab=orders')}
+                  className="mt-4 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                >
+                  Тапсырыстарға өту
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      case 'analytics':
+        return (
+          <div className="card">
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Аналитика</h2>
+              {analytics ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="text-sm text-blue-600 font-medium">Жалпы тапсырыстар</div>
+                    <div className="text-3xl font-bold text-blue-900 mt-1">{analytics.total_orders}</div>
+                  </div>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="text-sm text-green-600 font-medium">Бүгін жеткізілді</div>
+                    <div className="text-3xl font-bold text-green-900 mt-1">{analytics.delivered_today}</div>
+                  </div>
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <div className="text-sm text-purple-600 font-medium">Белсенді тасымалдаушылар</div>
+                    <div className="text-3xl font-bold text-purple-900 mt-1">{analytics.active_carriers}</div>
+                  </div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div className="text-sm text-amber-600 font-medium">Үнемделген бос жүріс (км)</div>
+                    <div className="text-3xl font-bold text-amber-900 mt-1">{analytics.empty_miles_saved_km}</div>
+                  </div>
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <div className="text-sm text-orange-600 font-medium">LTL топтар</div>
+                    <div className="text-3xl font-bold text-orange-900 mt-1">{analytics.ltl_groups_formed}</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">Аналитика жүктелуде...</div>
+              )}
+              {analytics?.top_routes?.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Жиі маршруттар</h3>
+                  <div className="space-y-2">
+                    {analytics.top_routes.map((r, i) => (
+                      <div key={i} className="flex justify-between items-center py-2 px-4 bg-gray-50 rounded-lg">
+                        <span className="text-sm">{r.origin} → {r.destination}</span>
+                        <span className="text-sm font-medium text-amber-600">{r.count} рет</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      case 'orders':
+      case 'dashboard':
+      default:
+        return null; // dashboard + orders existing content below
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-8 py-6">
@@ -223,6 +339,11 @@ const DispatcherDashboard = () => {
       </header>
       
       <main className="p-8">
+        {/* Tab-specific content (carriers, routes, analytics) */}
+        {renderTabContent()}
+
+        {/* Dashboard + Orders tab content */}
+        {(activeTab === 'dashboard' || activeTab === 'orders') && (<>
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {kpiCards.map((card, index) => (
@@ -408,9 +529,10 @@ const DispatcherDashboard = () => {
             )}
           </div>
         </div>
+        </>)}
       </main>
     </div>
   );
 };
 
-export default DispatcherDashboard;
+export default DispatcherDashboard
