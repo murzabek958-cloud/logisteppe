@@ -1,5 +1,5 @@
-import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import React, { useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -21,8 +21,29 @@ const settlements = [
   { name: "Жетібай", lat: 43.5833, lng: 52.0833 }
 ];
 
+// Маршрут өзгерсе картаны автоматты зумдайды
+const RouteController = ({ from, to }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (from && to) {
+      const bounds = L.latLngBounds([[from.lat, from.lng], [to.lat, to.lng]]);
+      map.fitBounds(bounds, { padding: [60, 60] });
+    }
+  }, [from, to, map]);
+  return null;
+};
+
+const getSettlement = (name) =>
+  settlements.find(s => s.name.toLowerCase() === name?.toLowerCase());
+
 const MapView = ({ orders = [], carriers = [], selectedRoute = null }) => {
-  const getSettlement = (name) => settlements.find(s => s.name.toLowerCase() === name?.toLowerCase());
+  const from = selectedRoute?.origin ? getSettlement(selectedRoute.origin) : null;
+  const to = selectedRoute?.destination ? getSettlement(selectedRoute.destination) : null;
+
+  // key — маршрут өзгерген сайын Polyline-ды толық қайта салады
+  const routeKey = selectedRoute
+    ? `${selectedRoute.origin}-${selectedRoute.destination}-${Date.now()}`
+    : 'no-route';
 
   return (
     <MapContainer center={[44.5, 52.5]} zoom={7} style={{ height: '450px', width: '100%' }}>
@@ -30,21 +51,31 @@ const MapView = ({ orders = [], carriers = [], selectedRoute = null }) => {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+
+      {/* Елді мекендер маркерлері */}
       {settlements.map(s => (
         <Marker key={s.name} position={[s.lat, s.lng]}>
           <Popup><strong>{s.name}</strong></Popup>
         </Marker>
       ))}
-      {selectedRoute && selectedRoute.origin && selectedRoute.destination && (() => {
-        const from = getSettlement(selectedRoute.origin);
-        const to = getSettlement(selectedRoute.destination);
-        if (from && to) {
-          return <Polyline positions={[[from.lat, from.lng], [to.lat, to.lng]]} color="blue" weight={4} opacity={0.8} />;
-        }
-        return null;
-      })()}
+
+      {/* Маршрут сызығы — key арқылы жаңа маршрутта толық қайта жасалады */}
+      {from && to && (
+        <>
+          <Polyline
+            key={routeKey}
+            positions={[[from.lat, from.lng], [to.lat, to.lng]]}
+            color="blue"
+            weight={5}
+            opacity={0.85}
+          />
+          {/* Зум автоматты маршрутқа бейімделеді */}
+          <RouteController from={from} to={to} />
+        </>
+      )}
     </MapContainer>
   );
 };
 
 export default MapView;
+      
