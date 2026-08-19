@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from ..database import get_db
-from ..models import User, Carrier, UserRole
-from ..schemas import CarrierRegister, CarrierUpdateLocation, CarrierResponse
-from ..auth import get_current_active_user
+from backend.database import get_db
+from backend.models import User, Carrier, UserRole
+from backend.schemas import CarrierRegister, CarrierUpdateLocation, CarrierResponse
+from backend.auth import get_current_active_user
 
 router = APIRouter()
 
@@ -39,3 +39,4 @@ def update_location(location_data: CarrierUpdateLocation, current_user: User = D
     db.commit()
     db.refresh(carrier)
     return carrier
+    
