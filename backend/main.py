@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .database import engine, Base, get_db
-from .routers import auth, orders, carriers, routes, analytics
-from .data.settlements import seed_settlements
+from backend.database import engine, Base, get_db
+from backend.routers import auth, orders, carriers, routes, analytics
+from backend.data.settlements import seed_settlements
 
 Base.metadata.create_all(bind=engine)
 
@@ -37,3 +37,4 @@ app.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 @app.get("/")
 def read_root():
     return {"message": "LogiSteppe Mangystau Cargo Platform API"}
+    
