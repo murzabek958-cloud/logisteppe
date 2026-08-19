@@ -5,6 +5,91 @@ import { ordersAPI, analyticsAPI, routesAPI } from '../api/client';
 import OrderList from '../components/OrderList';
 import MapView from '../components/MapView';
 
+const STATUS_LABELS = {
+  pending: 'Күтілуде', matched: 'Сәйкестендірілді',
+  in_transit: 'Жолда', delivered: 'Жеткізілді',
+};
+const STATUS_COLORS = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  matched: 'bg-blue-100 text-blue-800',
+  in_transit: 'bg-orange-100 text-orange-800',
+  delivered: 'bg-green-100 text-green-800',
+};
+
+// Dispatcher-ға арналған тапсырыс тізімі:
+// — pending → «Маршрут» батырмасы + «Жолда» батырмасы
+// — matched → «Жолда» / «Жеткізілді» батырмалары
+// — in_transit → «Жеткізілді» батырмасы
+const DispatcherOrderList = ({ orders, matchLoading, onMatch, onStatusChange }) => {
+  if (orders.length === 0)
+    return <div className="p-6 text-center text-gray-500">Тапсырыстар жоқ</div>;
+
+  return (
+    <div className="divide-y">
+      {orders.map(order => (
+        <div key={order.id} className="p-4 hover:bg-gray-50 flex justify-between items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="font-bold">{order.origin} → {order.destination}</div>
+            <div className="text-sm text-gray-600">
+              {order.weight_kg} кг • {order.cargo_type}
+              {order.price_estimate && ` • ${order.price_estimate.toLocaleString()} ₸`}
+            </div>
+            <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-600'}`}>
+              {STATUS_LABELS[order.status] || order.status}
+            </span>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            {order.status === 'pending' && (
+              <>
+                <button
+                  onClick={() => onMatch(order.id)}
+                  disabled={matchLoading === order.id}
+                  className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md disabled:opacity-50"
+                >
+                  {matchLoading === order.id ? '...' : '🔍 Маршрут'}
+                </button>
+                <button
+                  onClick={() => onStatusChange(order.id, 'in_transit')}
+                  className="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm rounded-md"
+                >
+                  🚛 Жолда
+                </button>
+              </>
+            )}
+            {order.status === 'matched' && (
+              <>
+                <button
+                  onClick={() => onStatusChange(order.id, 'in_transit')}
+                  className="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm rounded-md"
+                >
+                  🚛 Жолда
+                </button>
+                <button
+                  onClick={() => onStatusChange(order.id, 'delivered')}
+                  className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-md"
+                >
+                  ✅ Жеткізілді
+                </button>
+              </>
+            )}
+            {order.status === 'in_transit' && (
+              <button
+                onClick={() => onStatusChange(order.id, 'delivered')}
+                className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-md"
+              >
+                ✅ Жеткізілді
+              </button>
+            )}
+            {order.status === 'delivered' && (
+              <span className="px-3 py-2 text-sm text-gray-400">📦 Аяқталды</span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const DispatcherDashboard = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -12,7 +97,7 @@ const DispatcherDashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [matchResult, setMatchResult] = useState(null);
-  const [matchLoading, setMatchLoading] = useState(false);
+  const [matchLoading, setMatchLoading] = useState(null); // order id
   const [filterStatus, setFilterStatus] = useState('');
 
   useEffect(() => {
@@ -35,16 +120,15 @@ const DispatcherDashboard = () => {
   };
 
   const handleMatch = async (orderId) => {
-    setMatchLoading(true);
+    setMatchLoading(orderId);
     try {
       const response = await routesAPI.match(orderId);
       setMatchResult(response.data);
-      // Тізімді жаңарту — matched болған тапсырыс статусын өзгерту
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'matched' } : o));
     } catch (err) {
       console.error('Маршрут есептеу қатесі:', err);
     } finally {
-      setMatchLoading(false);
+      setMatchLoading(null);
     }
   };
 
@@ -162,30 +246,12 @@ const DispatcherDashboard = () => {
           {loading ? (
             <div className="text-center py-8 text-gray-500">Жүктелуде...</div>
           ) : (
-            <div>
-              {filteredOrders.map(order => (
-                <div key={order.id} className="p-4 border-b hover:bg-gray-50 flex justify-between items-center">
-                  <div>
-                    <div className="font-bold">{order.origin} → {order.destination}</div>
-                    <div className="text-sm text-gray-600">{order.weight_kg} кг • {order.cargo_type} • {order.status}</div>
-                  </div>
-                  {order.status === 'pending' && (
-                    <button
-                      onClick={() => handleMatch(order.id)}
-                      disabled={matchLoading}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm disabled:opacity-50"
-                    >
-                      {matchLoading ? '...' : '🔍 Маршрут'}
-                    </button>
-                  )}
-                  {order.status !== 'pending' && (
-                    <span className="px-4 py-2 rounded-md text-sm bg-gray-100 text-gray-500">
-                      {order.status === 'matched' ? '✅ Сәйкес' : order.status === 'in_transit' ? '🚛 Жолда' : '📦 Жеткізілді'}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
+            <DispatcherOrderList
+              orders={filteredOrders}
+              matchLoading={matchLoading}
+              onMatch={handleMatch}
+              onStatusChange={handleStatusChange}
+            />
           )}
         </div>
       </div>
