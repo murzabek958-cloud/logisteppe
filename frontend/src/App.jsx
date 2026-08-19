@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import ShipperDashboard from './pages/ShipperDashboard';
@@ -15,35 +15,37 @@ const ProtectedRoute = ({ children, allowedRole }) => {
 
 const Sidebar = () => {
   const { role, logout } = useAuth();
-  const location = window.location.pathname;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentTab = new URLSearchParams(location.search).get('tab') || 'dashboard';
 
   const navItems = [
     {
-      path: '/dashboard',
+      tab: 'dashboard',
       label: 'Dashboard',
       icon: '📊',
       roles: ['dispatcher']
     },
     {
-      path: '/orders',
+      tab: 'orders',
       label: 'Orders',
       icon: '📋',
       roles: ['dispatcher']
     },
     {
-      path: '/carriers',
+      tab: 'carriers',
       label: 'Carriers',
       icon: '🚛',
       roles: ['dispatcher']
     },
     {
-      path: '/routes',
+      tab: 'routes',
       label: 'Routes',
       icon: '🗺️',
       roles: ['dispatcher']
     },
     {
-      path: '/analytics',
+      tab: 'analytics',
       label: 'Analytics',
       icon: '📈',
       roles: ['dispatcher']
@@ -65,12 +67,12 @@ const Sidebar = () => {
       
       <nav className="mt-6 px-4">
         {filteredNavItems.map((item) => {
-          const isActive = location === item.path;
+          const isActive = currentTab === item.tab;
           return (
-            <a
-              key={item.path}
-              href={item.path}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+            <button
+              key={item.tab}
+              onClick={() => navigate(`/dispatcher?tab=${item.tab}`)}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive 
                   ? 'bg-amber-50 text-amber-600 border border-amber-200' 
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -78,7 +80,7 @@ const Sidebar = () => {
             >
               <span className="text-lg">{item.icon}</span>
               <span className="font-medium">{item.label}</span>
-            </a>
+            </button>
           );
         })}
       </nav>
