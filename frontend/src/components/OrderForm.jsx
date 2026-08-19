@@ -36,6 +36,10 @@ const OrderForm = ({ onOrderCreated }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.origin === formData.destination) {
+      setError('Қайдан және қайда бір елді мекен болмауы керек');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -67,7 +71,9 @@ const OrderForm = ({ onOrderCreated }) => {
             <label className="block text-gray-700 mb-2">Қайда</label>
             <select name="destination" value={formData.destination} onChange={handleChange} required className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500">
               <option value="">Таңдаңыз</option>
-              {settlements.map(s => <option key={s} value={s}>{s}</option>)}
+              {settlements.map(s => (
+                <option key={s} value={s} disabled={s === formData.origin}>{s}</option>
+              ))}
             </select>
           </div>
         </div>
