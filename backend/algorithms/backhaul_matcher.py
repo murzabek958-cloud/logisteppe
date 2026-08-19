@@ -1,10 +1,36 @@
 from datetime import datetime
 from typing import List
+from sqlalchemy.orm import Session
+from ..models import Order, OrderStatus
 
-def find_backhaul(carrier_destination: str, carrier_return_time: datetime) -> List[dict]:
-    mock_orders = [
-        {"id": 101, "origin": "Бейнеу", "destination": "Ақтау", "weight_kg": 2000},
-        {"id": 102, "origin": "Жаңаөзен", "destination": "Ақтау", "weight_kg": 1500},
-        {"id": 103, "origin": "Шетпе", "destination": "Ақтау", "weight_kg": 3000},
+
+def find_backhaul(
+    carrier_destination: str,
+    carrier_return_time: datetime,
+    db: Session,
+) -> List[dict]:
+    """
+    Тасымалдаушы жеткізіп болған соң кері бағытта (carrier_destination → кез-келген)
+    pending тапсырыстарды іздейді — бос қайтпас үшін.
+    """
+    orders = (
+        db.query(Order)
+        .filter(
+            Order.status == OrderStatus.pending,
+            Order.origin == carrier_destination,
+        )
+        .all()
+    )
+
+    return [
+        {
+            "id": o.id,
+            "origin": o.origin,
+            "destination": o.destination,
+            "weight_kg": o.weight_kg,
+            "cargo_type": o.cargo_type.value if hasattr(o.cargo_type, "value") else str(o.cargo_type),
+            "priority": o.priority.value if hasattr(o.priority, "value") else str(o.priority),
+        }
+        for o in orders
     ]
-    return [o for o in mock_orders if o["origin"].lower() == carrier_destination.lower()]
+    
