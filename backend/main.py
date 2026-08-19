@@ -10,7 +10,11 @@ app = FastAPI(title="LogiSteppe API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://frontend-myrzabek.vercel.app",
+        "https://frontend-git-master-myrzabek.vercel.app",
+        "http://localhost:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,4 +37,3 @@ app.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 @app.get("/")
 def read_root():
     return {"message": "LogiSteppe Mangystau Cargo Platform API"}
-    
