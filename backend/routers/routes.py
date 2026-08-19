@@ -50,7 +50,7 @@ def match_route(
 
     selected_carrier = available_carriers[0]
 
-    backhaul_orders = find_backhaul(order.destination, datetime.utcnow())
+    backhaul_orders = find_backhaul(order.destination, datetime.utcnow(), db)
 
     pending_same_route = db.query(Order).filter(
         and_(
