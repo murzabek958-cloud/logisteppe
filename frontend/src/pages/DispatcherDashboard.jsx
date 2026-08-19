@@ -39,6 +39,8 @@ const DispatcherDashboard = () => {
     try {
       const response = await routesAPI.match(orderId);
       setMatchResult(response.data);
+      // Тізімді жаңарту — matched болған тапсырыс статусын өзгерту
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'matched' } : o));
     } catch (err) {
       console.error('Маршрут есептеу қатесі:', err);
     } finally {
@@ -167,13 +169,20 @@ const DispatcherDashboard = () => {
                     <div className="font-bold">{order.origin} → {order.destination}</div>
                     <div className="text-sm text-gray-600">{order.weight_kg} кг • {order.cargo_type} • {order.status}</div>
                   </div>
-                  <button
-                    onClick={() => handleMatch(order.id)}
-                    disabled={matchLoading}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm disabled:opacity-50"
-                  >
-                    {matchLoading ? '...' : '🔍 Маршрут'}
-                  </button>
+                  {order.status === 'pending' && (
+                    <button
+                      onClick={() => handleMatch(order.id)}
+                      disabled={matchLoading}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm disabled:opacity-50"
+                    >
+                      {matchLoading ? '...' : '🔍 Маршрут'}
+                    </button>
+                  )}
+                  {order.status !== 'pending' && (
+                    <span className="px-4 py-2 rounded-md text-sm bg-gray-100 text-gray-500">
+                      {order.status === 'matched' ? '✅ Сәйкес' : order.status === 'in_transit' ? '🚛 Жолда' : '📦 Жеткізілді'}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
@@ -185,3 +194,4 @@ const DispatcherDashboard = () => {
 };
 
 export default DispatcherDashboard;
+                        
