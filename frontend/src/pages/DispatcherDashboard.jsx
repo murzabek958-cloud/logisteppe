@@ -13,6 +13,11 @@ const DispatcherDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [matchLoading, setMatchLoading] = useState(null);
+  
+  // Filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
 
   useEffect(() => {
     fetchData();
@@ -72,6 +77,23 @@ const DispatcherDashboard = () => {
     logout();
     navigate('/');
   };
+
+  // Filter orders based on search term, status and priority
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = searchTerm === '' ||
+      order.id.toString().includes(searchTerm.toLowerCase()) ||
+      order.origin.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.destination.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.cargo_type.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+    const matchesPriority = priorityFilter === 'all' || order.priority === priorityFilter;
+    
+    return matchesSearch && matchesStatus && matchesPriority;
+  });
+
+  // Check if any filters are active
+  const hasActiveFilters = searchTerm !== '' || statusFilter !== 'all' || priorityFilter !== 'all';
 
   // Count orders by status
   const orderCounts = {
@@ -230,11 +252,78 @@ const DispatcherDashboard = () => {
               </div>
             </div>
             
-            {orders.length === 0 ? (
+            {/* Search and Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Тапсырысты іздеу..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              >
+                <option value="all">Барлығы</option>
+                <option value="pending">Күтілуде</option>
+                <option value="matched">Сәйкестенді</option>
+                <option value="in_transit">Жолда</option>
+                <option value="delivered">Жеткізілді</option>
+              </select>
+              
+              <select
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              >
+                <option value="all">Барлығы</option>
+                <option value="urgent">Жедел</option>
+                <option value="normal">Қалыпты</option>
+                <option value="low">Төмен</option>
+              </select>
+              
+              {hasActiveFilters && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                    setPriorityFilter('all');
+                  }}
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Тазалау
+                </button>
+              )}
+            </div>
+            
+            {/* Result count */}
+            <div className="mb-4 text-sm text-gray-600">
+              {filteredOrders.length} тапсырыс көрсетілуде
+              {hasActiveFilters && (
+                <span className="ml-2 text-gray-500">
+                  (барлығы: {orders.length})
+                </span>
+              )}
+            </div>
+            
+            {filteredOrders.length === 0 ? (
               <div className="text-center py-12">
                 <div className="text-gray-400 text-6xl mb-4">📋</div>
-                <div className="text-gray-600 text-lg font-medium mb-2">Тапсырыстар жоқ</div>
-                <div className="text-gray-500">Қазіргі уақытта жүк тасымал тапсырыстары жоқ</div>
+                <div className="text-gray-600 text-lg font-medium mb-2">Тапсырыс табылмады</div>
+                <div className="text-gray-500">Іздеу немесе фильтр параметрлерін өзгертіп көріңіз.</div>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -251,7 +340,7 @@ const DispatcherDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {orders.map(order => (
+                    {filteredOrders.map(order => (
                       <tr key={order.id} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="py-3 px-4 text-sm font-medium text-gray-900">#{order.id}</td>
                         <td className="py-3 px-4 text-sm">
