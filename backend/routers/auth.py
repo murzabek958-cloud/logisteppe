@@ -14,7 +14,11 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     ).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email or phone already registered")
-    hashed_password = get_password_hash(user_data.password)
+    
+    # bcrypt 72 байт лимиті
+    password = user_data.password[:72]
+    hashed_password = get_password_hash(password)
+    
     db_user = User(
         email=user_data.email,
         phone=user_data.phone,
@@ -29,7 +33,7 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login(user_data: UserLogin, db: Session = Depends(get_db)):
-    user = authenticate_user(db, user_data.email, user_data.password)
+    user = authenticate_user(db, user_data.email, user_data.password[:72])
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
