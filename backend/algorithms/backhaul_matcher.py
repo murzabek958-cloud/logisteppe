@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List
 from sqlalchemy.orm import Session
-from ..models import Order, OrderStatus
+from backend.models import Order, OrderStatus
 
 
 def find_backhaul(
